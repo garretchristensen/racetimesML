@@ -10,6 +10,7 @@ I'm just trying to learn some ML using my ultramarathon race times.
 
 ```{r, results='hide'}
 data<-read.csv(file="racedata.csv", head=TRUE)
+data$Climbing=as.numeric(data$Climbing)
 head(data)
 ```
 
@@ -17,10 +18,42 @@ To date, I have run `r nrow(data)` races, `r sum(data$Distance>=100)` of which w
 
 The average distance of my races is `r round(mean(data$Distance, na.rm=TRUE))` miles. The average time elapsed is `r round(mean(data$Hours*60+data$Minutes, na.rm=TRUE)/60, digits=2)` hours.
 
-# Plot
-First, I'll plot time versus distance.
+# Distance vs. Time
+First, I'll plot time versus distance and fit a univariate regression line.
 
 ```{r}
 data$Time=data$Hours+data$Minutes/60
-plot(data$Time~data$Distance)
+mod1<-lm(data$Time~data$Distance)
+plot(data$Time~data$Distance, xlab="Distance (M)", ylab="Time (H)")
+abline(mod1)
 ```
+
+Eyeballing that looks like linear regression makes a lot of sense, but I'll see if a quadratic polynomial does any better
+
+```{r, results='asis', message=FALSE}
+data$DistanceSQ=data$Distance^2
+mod2<-lm(data$Time~data$Distance+data$DistanceSQ)
+library(stargazer)
+stargazer(mod1, mod2, se=list(NULL, NULL), type="html", out="stargazerout.html", title="Linear and Quadratic Models", align=TRUE, column.labels=c("Linear","Quadratic"))
+```
+
+Maybe a tiny bit. But what does the linear model say about my (slow) speed? The coefficient on distance is `r coef(mod1)[2]`. Which means on average I'm running `r 1/coef(mod1)[2]` miles per hour, or `r 60*coef(mod1)[2]`-minute miles. Jeebus, I am slow.
+
+# More Predictors
+The R^2 with just one regression is pretty high, `r summary(mod1)$r.squared`. Can I do better than that with more variables? Probably not, but let's see. The variables I've been able to gather are the following:
+
+```{r}
+colnames(data)
+```
+
+I think amount of vertical climbing definitely makes a big difference. Trail races tend to be slower than pavement, and the number of finishers might make me more competitive and run faster. Unfortunately I don't have data for these variables on all the races.
+
+```{r, results='asis'}
+mod3<-lm(Time~Distance+DistanceSQ+Climbing, data=data)
+mod4<-lm(Time~Distance+DistanceSQ+Climbing+Trail+Finishers, data=data)
+stargazer(mod1, mod2, mod3, mod4, se=list(NULL, NULL, NULL, NULL), type="html", out="stargazerout2.html", title="Multivariate Linear Models", align=TRUE, column.labels=c("Linear","Quadratic", "Climbing", "All"))
+```
+
+OK, now first of all, the intercept should be zero, but I know it won't be.
+
+Second, why the hell is the coefficient on climbing negative? And how can I still have 71 obervations in the regression when I definitely don't have all the Climbing observations? And why do the Distances appear on different lines? That's annoying.
