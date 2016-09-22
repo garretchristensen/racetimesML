@@ -1,0 +1,26 @@
+---
+title: "My Ultramarathon Race Times"
+author: "Garret Christensen"
+date: "September 21, 2016"
+output: html_document
+---
+# Summary
+
+I'm just trying to learn some ML using my ultramarathon race times.
+
+```{r, results='hide'}
+data<-read.csv(file="racedata.csv", head=TRUE)
+head(data)
+```
+
+To date, I have run `r nrow(data)` races, `r sum(data$Distance>=100)` of which were 100 or more miles long. This doesn't include a handful of off-trail or orienteering races. It does include (boring) paved marathons, of which I have run `r sum(data$Distance==26.2 & data$Trail==0)`.
+
+The average distance of my races is `r round(mean(data$Distance, na.rm=TRUE))` miles. The average time elapsed is `r round(mean(data$Hours*60+data$Minutes, na.rm=TRUE)/60, digits=2)` hours.
+
+# Plot
+First, I'll plot time versus distance.
+
+```{r}
+data$Time=data$Hours+data$Minutes/60
+plot(data$Time~data$Distance)
+```
